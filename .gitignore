@@ -1,0 +1,52 @@
+# 忽略Python字节码文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 忽略Python虚拟环境
+venv/
+env/
+*.env
+.venv/
+
+# 忽略编辑器和IDE生成的文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 忽略日志文件
+*.log
+
+# 忽略依赖项和构建输出
+/dist/
+/build/
+*.egg-info/
+*.egg
+*.pyc
+*.pyo
+*.pyd
+
+# 忽略缓存和临时文件
+*.cache/
+*.tmp/
+
+# 忽略配置文件中包含敏感信息的文件
+config.ini
+# config.py
+
+# 忽略数据库文件
+*.db
+*.sqlite
+
+# 忽略其他自动生成的文件和文件夹
+*.bak
+*.log
+*.swp
+.DS_Store
+
+# session
+flask_session
+
+logs/
