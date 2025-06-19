@@ -5,10 +5,11 @@ from models.stock_model import StockData, TradingCalendar
 from database import SessionLocal
 import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from helpers.data_cleaner import clean_stock_data
 from functools import lru_cache  # 新增：用于缓存交易日历
 import logging
+from database.database_utils import db_session_scope
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,14 @@ def load_trading_calendar_from_db():
     db = SessionLocal()
     try:
         trading_calendar = db.query(TradingCalendar.trade_date)
-        trading_calendar = trading_calendar.order_by(TradingCalendar.trade_date.desc()).limit(365).all()
-        logger.debug(f"Loaded trading calendar from DB: {[date[0] for date in trading_calendar][:-5:]}")
+        trading_calendar = (
+            trading_calendar.order_by(TradingCalendar.trade_date.desc())
+            .limit(365)
+            .all()
+        )
+        logger.debug(
+            f"Loaded trading calendar from DB: {[date[0] for date in trading_calendar][:-5:]}"
+        )
         return [date[0] for date in trading_calendar]
     except Exception as e:
         print(f"Error loading trading calendar from DB: {e}")
@@ -39,6 +46,16 @@ def save_trading_calendar_to_db(trading_calendar):
         print(f"Error saving trading calendar to DB: {e}")
     finally:
         db.close()
+    # with db_session_scope() as db:
+    #     # 确保交易日历表中没有重复的日期
+    #     db.query(TradingCalendar).filter(
+    #         TradingCalendar.trade_date.in_(trading_calendar)
+    #     ).delete(synchronize_session=False)
+    #     db.bulk_insert_mappings(
+    #         TradingCalendar.__mapper__,
+    #         [{"trade_date": date} for date in trading_calendar],
+    #     )
+    #     db.commit()
 
 
 def sync_trading_calendar():
@@ -51,7 +68,7 @@ def sync_trading_calendar():
         trade_date_hist = ak.tool_trade_date_hist_sina()
         logger.info("Fetching latest trading calendar from AkShare")
         logger.debug(f"first 5 trading dates: {trade_date_hist['trade_date'].head()}")
-        
+
         if trade_date_hist.empty:
             logger.warning("No trading dates found in AkShare data.")
             return
@@ -142,10 +159,7 @@ def fetch_stock_data(date_str_req: Optional[str] = None) -> pd.DataFrame:
             if df.empty:
                 logger.warning("没有获取到股票数据")
                 return pd.DataFrame()
-            # 保存到CSV供下次使用，有待完善，如果今天不是交易日，保存路径的日期应为最近的交易日
-            # TODO: 优化保存逻辑，确保文件名包含交易日信息
-            df.to_csv(local_csv_path, index=False)
-            logger.info("成功从AkShare获取股票数据并保存到CSV")
+
             # 判断当前时间是否为交易日
             current_time = datetime.now()
             if current_time.hour >= 15:
@@ -161,6 +175,10 @@ def fetch_stock_data(date_str_req: Optional[str] = None) -> pd.DataFrame:
                 if attempts == max_attempts:
                     print("警告：在10次查找内未找到交易日，使用当前日期作为默认值")
                     date = current_time.date()
+
+        df.to_csv(f"stock_data_{date.strftime('%Y%m%d')}", index=False)
+        logger.info("成功从AkShare获取股票数据并保存到CSV")
+        # 清洗数据
         df = clean_stock_data(df)
 
         # 添加日期字段
@@ -171,23 +189,128 @@ def fetch_stock_data(date_str_req: Optional[str] = None) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def save_stock_data(df):
-    """
-    将股票数据保存到数据库
-    :param df: 包含股票数据的 DataFrame
-    """
-    db = SessionLocal()
-    try:
-        # 将 DataFrame 转换为字典列表
-        data = df.to_dict(orient="records")
+def save_stock_data(df: pd.DataFrame):
+    """Saves stock data to the database using a managed session."""
+    if df.empty:
+        logger.info("DataFrame is empty, skipping database save.")
+        return
 
-        # 批量插入数据
-        db.bulk_insert_mappings(StockData.__mapper__, data)
-        db.commit()
+    with db_session_scope() as db:
+        data = df.to_dict(orient="records")
+        # Ensure all keys in each dict are strings
+        data = [{str(k): v for k, v in record.items()} for record in data]
+        # Check if date already exists to prevent duplicates
+        trade_date = data[0]["trade_date"]
+        exists = db.query(StockData).filter(StockData.trade_date == trade_date).first()
+        if not exists:
+            db.bulk_insert_mappings(StockData.__mapper__, data)
+            logger.info(
+                f"Successfully saved {len(data)} records for date {trade_date}."
+            )
+        else:
+            logger.warning(
+                f"Data for date {trade_date} already exists in DB. Skipping."
+            )
+
+
+def get_latest_trade_date(trading_days: set[str]) -> date:
+    """
+    Calculates the most recent valid trading date.
+
+    If it's before 3 PM on a trading day, it returns the previous trading day.
+    Otherwise, it returns today's date (if it's a trading day) or the most
+    recent previous trading day.
+    """
+    today = datetime.now().date()
+    # If market is still open, data is for the previous day
+    if datetime.now().hour < 15 and today.strftime("%Y-%m-%d") in trading_days:
+        date_to_check = today - timedelta(days=1)
+    else:
+        date_to_check = today
+
+    # Find the most recent trading day, looking back up to 10 days
+    for i in range(10):
+        check_str = (date_to_check - timedelta(days=i)).strftime("%Y-%m-%d")
+        if check_str in trading_days:
+            return date_to_check - timedelta(days=i)
+
+    logger.error("Could not find a recent trading day in the last 10 days.")
+    raise ValueError("Failed to determine a valid recent trade date.")
+
+
+# This function should be called at startup and on a schedule (e.g., daily)
+@lru_cache(maxsize=1)
+def get_trading_calendar_set(force_refresh: bool = False) -> set[str]:
+    """
+    Loads the trading calendar from the DB. Uses a cache for performance.
+    The cache is only refreshed when force_refresh=True.
+    """
+    logger.info("Loading trading calendar into memory set.")
+    with db_session_scope() as db:
+        dates = (
+            db.query(TradingCalendar.trade_date)
+            .filter(TradingCalendar.trade_date >= datetime.now() - timedelta(days=365))
+            .all()
+        )
+        return {d.trade_date.strftime("%Y-%m-%d") for d in dates}
+
+
+# Refactored fetch_stock_data, now with clear responsibilities
+def get_stock_data(target_date: date) -> pd.DataFrame:
+    """
+    Fetches stock data for a specific date, prioritizing local cache.
+
+    This function is now responsible ONLY for fetching/loading for a GIVEN date.
+    The logic to decide the date is handled elsewhere.
+    """
+    date_str = target_date.strftime("%Y%m%d")
+    local_csv_path = f"stock_data_{date_str}.csv"
+
+    # 1. Try loading from local CSV cache
+    if os.path.exists(local_csv_path):
+        logger.info(f"Loading stock data from local file: {local_csv_path}")
+        df = pd.read_csv(local_csv_path, dtype={"代码": str})
+        df["trade_date"] = target_date.strftime("%Y-%m-%d")
+        return df
+
+    # 2. If not cached, fetch from API
+    logger.info(f"Fetching stock data from AkShare for date: {target_date}")
+    try:
+        df = ak.stock_zh_a_spot_em()
+        if df.empty:
+            logger.warning("AkShare returned no data.")
+            return pd.DataFrame()
+
+        # 3. Clean and save to cache for next time
+        df = clean_stock_data(df)
+        df["trade_date"] = target_date.strftime("%Y-%m-%d")
+        df.to_csv(local_csv_path, index=False)
+        logger.info(f"Saved new data to {local_csv_path}")
+        return df
     except Exception as e:
-        db.rollback()
-        logger.error(
-            f"Error saving stock data: {e}"
-        )  # Log only key info at ERROR level
-    finally:
-        db.close()
+        logger.error(f"Failed to fetch data from AkShare: {e}")
+        return pd.DataFrame()
+
+
+def get_stock_data_for_date():
+    """
+    Fetches stock data for a specific date, ensuring the date is a trading day.
+    If the date is not a trading day, it fetches data for the most recent trading day.
+    """
+    # 2. Get the calendar once into a fast, in-memory set
+    trading_days_set = get_trading_calendar_set(force_refresh=True)
+
+    # 3. Determine the date you want to process
+    try:
+        target_date = get_latest_trade_date(trading_days_set)
+        logger.info(f"Determined target trade date is: {target_date}")
+
+        # 4. Get the data for that specific date
+        stock_df = get_stock_data(target_date)
+
+        # 5. If data is retrieved, save it to the database
+        if not stock_df.empty:
+            save_stock_data(stock_df)
+
+    except ValueError as e:
+        logger.error(f"Could not run stock data job: {e}")
