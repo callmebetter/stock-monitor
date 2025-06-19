@@ -26,13 +26,14 @@ async def lifespan(app: FastAPI):
 
     init_db()
     scheduler_service.start_scheduler()
-    scheduler_service.add_job(
-        func=sync_trading_calendar,
-        trigger="cron", 
-        month=1,
-        hour=0, 
-        minute=0, 
-    )
+    # Execute once a year, no need to schedule it.Manual invocation is preferred.
+    # scheduler_service.add_job(
+    #     func=sync_trading_calendar,
+    #     trigger="cron", 
+    #     month=1,
+    #     hour=0, 
+    #     minute=0, 
+    # )
 
     yield
     # 在应用关闭时执行清理操作

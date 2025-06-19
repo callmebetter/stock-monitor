@@ -58,53 +58,99 @@ def save_trading_calendar_to_db(trading_calendar):
     #     db.commit()
 
 
+import pandas as pd
+from sqlalchemy.exc import SQLAlchemyError
+
+
 def sync_trading_calendar():
     """
-    同步交易日历到数据库
+    Synchronizes the trading calendar with the database.
+
+    This function fetches the latest trading dates from AkShare,
+    compares them with the existing dates in the database, and
+    then adds new dates and removes outdated ones.
+    It's designed to be called as a service in a route.
     """
-    db = SessionLocal()
     try:
-        # 从 AkShare 获取最新的交易日历
-        trade_date_hist = ak.tool_trade_date_hist_sina()
-        logger.info("Fetching latest trading calendar from AkShare")
-        logger.debug(f"first 5 trading dates: {trade_date_hist['trade_date'].head()}")
+        logger.info("Initiating trading calendar synchronization...")
 
-        if trade_date_hist.empty:
-            logger.warning("No trading dates found in AkShare data.")
-            return
+        with db_session_scope() as db:
+            # Fetch latest trading calendar from AkShare
+            # Call AkShare API only once to avoid redundant network requests
+            ak_calendar_df = ak.tool_trade_date_hist_sina()
+            logger.info("Successfully fetched latest trading calendar from AkShare.")
 
-        latest_calendar = set(
-            ak.tool_trade_date_hist_sina()["trade_date"].values.tolist()
-        )
+            if ak_calendar_df.empty:
+                logger.warning(
+                    "AkShare returned an empty trading calendar. No sync performed."
+                )
+                return {"status": "warning", "message": "AkShare data is empty."}
 
-        # 从数据库中加载现有的交易日历
-        cached_calendar = load_trading_calendar_from_db()
-        cached_set = set(cached_calendar)
+            latest_calendar_dates = set(ak_calendar_df["trade_date"].values)
 
-        # 计算需要添加和删除的日期
-        to_add = latest_calendar - cached_set
-        to_remove = cached_set - latest_calendar
+            # Load existing trading calendar from the database
+            # Assuming load_trading_calendar_from_db returns a list of date objects or strings
+            cached_calendar_dates = set(load_trading_calendar_from_db())
+            logger.info(f"Loaded {len(cached_calendar_dates)} dates from database.")
 
-        # 添加新日期
-        for date in to_add:
-            db.add(TradingCalendar(trade_date=date))
+            # Determine dates to add and remove
+            to_add_dates = latest_calendar_dates - cached_calendar_dates
+            to_remove_dates = cached_calendar_dates - latest_calendar_dates
 
-        # 删除过期日期
-        if to_remove:
-            db.query(TradingCalendar).filter(
-                TradingCalendar.trade_date.in_(to_remove)
-            ).delete(synchronize_session=False)
+            added_count = 0
+            removed_count = 0
 
-        # 提交更改
-        db.commit()
-        logger.info(
-            f"Synced trading calendar: Added {len(to_add)} dates, Removed {len(to_remove)} dates"
-        )
+            # Add new dates efficiently using bulk insertion
+            if to_add_dates:
+                new_calendar_entries = [
+                    TradingCalendar(trade_date=date) for date in to_add_dates
+                ]
+                db.add_all(new_calendar_entries)
+                added_count = len(to_add_dates)
+                logger.info(f"Prepared to add {added_count} new trading dates.")
+
+            # Remove outdated dates efficiently using bulk deletion
+            if to_remove_dates:
+                db.query(TradingCalendar).filter(
+                    TradingCalendar.trade_date.in_(list(to_remove_dates))
+                ).delete(synchronize_session=False)
+                removed_count = len(to_remove_dates)
+                logger.info(
+                    f"Prepared to remove {removed_count} outdated trading dates."
+                )
+
+            if added_count == 0 and removed_count == 0:
+                logger.info(
+                    "Trading calendar is already up to date. No changes needed."
+                )
+                return {
+                    "status": "success",
+                    "message": "Trading calendar is already up to date.",
+                }
+
+            db.commit()
+            logger.info(
+                f"Successfully synced trading calendar: Added {added_count} dates, Removed {removed_count} dates."
+            )
+            return {
+                "status": "success",
+                "message": "Trading calendar synchronized successfully.",
+                "added_count": added_count,
+                "removed_count": removed_count,
+            }
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error during trading calendar sync: {e}", exc_info=True)
+        # Rollback in case of a database error
+        db.rollback()  # Ensure rollback happens within the session scope if possible, or handle outside
+        return {"status": "error", "message": f"Database error: {e}"}
     except Exception as e:
-        db.rollback()
-        logger.error(f"Error syncing trading calendar: {e}")
+        logger.error(
+            f"Unexpected error during trading calendar sync: {e}", exc_info=True
+        )
+        return {"status": "error", "message": f"An unexpected error occurred: {e}"}
     finally:
-        db.close()
+        logger.info("Trading calendar synchronization process finished.")
 
 
 # 修改：is_trading_day 函数，优先从缓存或数据库中读取交易日历

@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends,Body
 from sqlalchemy.orm import Session
 from database import get_db, SessionLocal
-from services.data_collector import fetch_stock_data, save_stock_data
+from services.data_collector import fetch_stock_data, save_stock_data, sync_trading_calendar
 from services.stock_analyzer import get_screened_stocks
 import logging
 from pydantic import BaseModel, field_validator
@@ -70,3 +70,10 @@ def get_screened_stocks_endpoint(db: Session = Depends(get_db)):
     """
     selected_stocks = get_screened_stocks()
     return selected_stocks.to_dict(orient='records')
+
+@router.post("/stocks/sync_trading_calendar")
+def sync_trading_calendar_endpoint():
+    res = sync_trading_calendar()
+    if res is None:
+        return {"error": "Failed to sync trading calendar"}
+    return res
