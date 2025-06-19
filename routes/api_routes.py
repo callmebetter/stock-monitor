@@ -1,21 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from database import get_db
+from database import get_db, SessionLocal
 from services.data_collector import fetch_stock_data, save_stock_data
 from services.stock_analyzer import get_screened_stocks
 
 router = APIRouter()
-
-def get_db():
-    """
-    获取数据库会话
-    :return: 数据库会话
-    """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.get("/stocks/today")
 def get_today_stock_data(db: Session = Depends(get_db)):

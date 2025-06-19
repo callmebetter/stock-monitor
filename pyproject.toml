@@ -1,7 +1,16 @@
 [project]
-name = "backend-new"
+name = "stock-monitor"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "Stock monitoring service with scheduled data collection"
 requires-python = ">=3.11"
-dependencies = []
+
+dependencies = [
+    "apscheduler",
+    "akshare", # For stock data fetching
+    "pymysql", # For MySQL database connectivity
+    "fastapi", # For building the backend API
+    "uvicorn", # For running FastAPI applications
+    "python-dotenv",
+    "sqlalchemy",
+    "tzlocal>=5.3.1",
+]

@@ -5,11 +5,6 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from database import engine, Base
-try:
-    from models.stock_model import StockData
-except ImportError:
-    from stock_monitor.models.stock_model import StockData
-
 
 def init_db():
     """Initialize the database, creating all tables"""
