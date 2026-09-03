@@ -1,9 +1,3 @@
-import os
-import sys
-
-# Add the project root directory to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
 from database import Base
 from sqlalchemy import Column, Integer, String, DECIMAL, BigInteger, TIMESTAMP, Date, UniqueConstraint, func
 
@@ -40,15 +34,8 @@ class StockData(Base):
 
     def __repr__(self):
         return f"<StockData(symbol='{self.symbol}', trade_date='{self.trade_date}')>"
-    # ma5 = Column(Float)  # 5日均线
-    # ma10 = Column(Float)  # 10日均线
-    # ma20 = Column(Float)  # 20日均线
-    # ma30 = Column(Float)  # 30日均线
-    # ma60 = Column(Float)  # 60日均线
-    # ma120 = Column(Float)  # 120日均线
-    # zhanhe = Column(Float)  # 均线粘合度
 
-# 新增: TradingCalendar 模型定义
+
 class TradingCalendar(Base):
     __tablename__ = 'trading_calendar'
     

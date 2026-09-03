@@ -1,13 +1,10 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import os
-import sys
-# Add the project root directory to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+import logging
 
-# Import config after updating sys.path
 import config
+
+logger = logging.getLogger(__name__)
 
 # Database connection string
 SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{config.DB_CONFIG['user']}:{config.DB_CONFIG['password']}@{config.DB_CONFIG['host']}:{config.DB_CONFIG['port']}/{config.DB_CONFIG['database']}"
@@ -18,8 +15,10 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Declare base class
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    """SQLAlchemy 2.0 declarative base"""
+    pass
 
 
 def get_db():
