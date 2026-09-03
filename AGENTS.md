@@ -66,3 +66,63 @@ stock-monitor/
 - Technical indicators (MA, convergence, volume) computed in `services/stock_analyzer.py`.
 - Uses pandas/numpy for vectorized calculations.
 - Screening conditions are combined with boolean masks.
+
+---
+
+## Known Issues & TODO
+
+### 🔴 High Priority
+
+#### 1. 选股分析数据前提不足
+- **问题**: `screen_stocks()` 需要按 symbol 聚合的多日历史数据来计算 MA 和 rolling 指标
+- **现状**: 当前数据模型是"单日快照"入库，无法计算跨日均线和粘合度
+- **方案**: 
+  - 查询时按 symbol 分组，拉取近 N 日数据计算指标
+  - 或新增预计算表存储每日指标
+
+#### 2. `get_screened_stocks()` 性能问题
+- **问题**: `pd.read_sql(db.query(StockData).statement, db.bind)` 拉全表
+- **方案**: 只查询近期数据，或分页处理
+
+### 🟡 Medium Priority
+
+#### 3. 定时任务缺少交易日判断
+- **问题**: `scheduler_service._collect_data` 每日 15:30 执行，不判断是否交易日
+- **方案**: 增加 `is_trading_day()` 判断，非交易日跳过
+
+#### 4. Session 管理不统一
+- **问题**: 路由层 `Depends(get_db)` 注入的 session 未被使用，service 层各自创建
+- **方案**: 二选一：
+  - 路由层传入 session，service 函数接受 `db: Session` 参数
+  - 移除路由层注入，service 层统一用 `db_session_scope()`
+
+#### 5. 未使用的代码
+- `StockUpdateRequest` Pydantic 模型已定义但未使用
+- `main.py` 中交易日历定时任务被注释，建议删除或启用
+
+### 🟢 Low Priority
+
+#### 6. 代码风格
+- `stock_analyzer.py` 中 `print()` 应改为 `logger.error()`
+- `api_routes.py` 中 `StockUpdateRequest` 未使用可删除
+
+---
+
+## Changelog
+
+### 2026-09-03
+- 简化依赖管理：删除 `requirements.txt`，统一使用 `pyproject.toml`
+- 修复 `pyproject.toml` 行内注释导致 uv 解析失败的问题
+- 移除未使用的 `tzlocal` 依赖
+- 添加 `.gitattributes` 统一换行符
+- 清理 `.gitignore` 重复项
+- 添加 `AGENTS.md` 项目规范文档
+- 移除 `sys.path` hack，改用正确的包导入
+- 删除重复的 `database/init_db.py`
+- 升级 SQLAlchemy 2.0 声明式基类 (`DeclarativeBase`)
+- 统一数据库会话管理 (`db_session_scope`)
+- 重构 `data_collector.py`，按职责分区
+- CSV 缓存迁移至 `data/cache/`
+- 补充缺失的 `__init__.py`
+- 移除 `config.py` 硬编码默认密码
+- 降低 `data_cleaner.py` 日志级别
