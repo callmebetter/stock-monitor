@@ -43,3 +43,4 @@ logs/
 
 # 数据缓存
 data/cache/
+nohup.out

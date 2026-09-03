@@ -16,4 +16,5 @@ dependencies = [
     "uvicorn",
     "python-dotenv",
     "sqlalchemy",
+    "cryptography>=50.0.1",
 ]
