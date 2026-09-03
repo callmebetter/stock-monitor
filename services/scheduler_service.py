@@ -39,13 +39,13 @@ class SchedulerService:
             logger.info(
                 f"Collecting stock data at {time.strftime('%Y-%m-%d %H:%M:%S')}"
             )
-            pd = fetch_stock_data()
-            if not pd.empty:
-                save_stock_data(pd)
+            df = fetch_stock_data()
+            if not df.empty:
+                save_stock_data(df)
             else:
                 logger.info("No data collected.")
         except Exception as e:
-            logger.error(f"Error collecting data: {str(e)}")
+            logger.error(f"Error collecting data: {e}")
 
     def get_scheduler_status(self):
         """Get current scheduler status"""
