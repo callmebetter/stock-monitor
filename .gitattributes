@@ -1,0 +1,36 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Python
+*.py text diff=python
+*.pyw text diff=python
+
+# Config / Data
+*.toml text
+*.json text
+*.yaml text
+*.yml text
+*.ini text
+*.cfg text
+*.env text
+
+# Documentation
+*.md text
+*.txt text
+
+# Scripts
+*.sh text eol=lf
+*.bat text eol=crlf
+
+# Lock files (track but always treat as text)
+uv.lock text
+
+# Binary / generated
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pyc binary
+*.pyo binary
+__pycache__/** binary

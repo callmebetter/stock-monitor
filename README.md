@@ -34,7 +34,7 @@ stock-monitor/
 │   └── api_routes.py
 ├── config.py
 ├── main.py
-├── requirements.txt
+├── pyproject.toml
 └── README.md
 ```
 
@@ -42,7 +42,7 @@ stock-monitor/
 
 ### 1. Install Dependencies
 ```bash
-uv pip install -r requirements.txt
+uv sync
 ```
 
 ### 2. Set Up Database
@@ -69,6 +69,29 @@ The API will be available at `http://localhost:8000`.
 | GET    | `/api/stocks/today`| Get today's stock data        |
 | POST   | `/api/stocks/update`| Manually update stock data   |
 | GET    | `/api/stocks/screened`| Get screened stocks      |
+
+## 🌐 Deployment
+
+This project is deployed and managed on Alibaba Cloud VPS via the operations project.
+
+| Item | Value |
+|------|-------|
+| Source | <https://github.com/callmebetter/stock-monitor.git> |
+| VPS Deploy Path | `/var/www/stock-monitor/` |
+| Process Manager | PM2 (`stock-monitor`, bash wrapper) |
+| Listen | `127.0.0.1:8000` (Uvicorn) |
+| Database | MySQL on same VPS |
+| Ops Project | `D:\qwen-zone\阿里云VPS运维` (local) — startup scripts, PM2 config, ops logs |
+
+Startup flow on VPS:
+```bash
+pm2 start /var/www/stock-monitor/start_panel.sh --name stock-monitor --interpreter bash
+```
+
+`start_panel.sh` internally runs:
+```
+exec .venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+```
 
 ## 📝 License
 

@@ -1,7 +1,0 @@
-akshare
-fastapi
-uvicorn
-sqlalchemy
-pymysql
-apscheduler
-python-dotenv

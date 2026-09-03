@@ -37,7 +37,7 @@ stock-monitor/
 │   └── api_routes.py
 ├── config.py
 ├── main.py
-├── requirements.txt
+├── pyproject.toml
 └── README.md
 ```
 
@@ -138,7 +138,7 @@ if __name__ == "__main__":
 ## 📦 8. 依赖安装
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ---
@@ -182,18 +182,10 @@ DB_NAME=<database_name>
 将尖括号中的内容替换为您的实际数据库凭据。
 
 ### Q2: 需要安装哪些依赖？
-A2: 创建 `requirements.txt` 文件并添加以下依赖：
+A2: 项目依赖统一在 `pyproject.toml` 中声明，使用以下命令安装所有依赖：
+```bash
+uv sync
 ```
-fastapi
-uvicorn
-akshare
-sqlalchemy
-pymysql
-apscheduler
-python-dotenv
-mysqlclient
-```
-然后使用命令 `uv pip install -r requirements.txt` 安装这些依赖。
 
 ### Q3: 如何初始化数据库？
 A3: 运行以下命令来初始化数据库模式：
@@ -248,7 +240,7 @@ A11: 这通常表示某些依赖未正确安装。请确保已安装所有必需
 ```
 uv add tzlocal
 ```
-或者检查 requirements.txt 文件是否包含所有必要的依赖。
+或者检查 pyproject.toml 文件是否包含所有必要的依赖。
 
 ### Q12: 数据采集失败可能是什么原因？
 A12: 数据采集失败可能有以下原因：
