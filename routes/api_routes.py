@@ -54,12 +54,13 @@ def update_stock_data(date: Annotated[datetime.date, Body(embed=True)], db: Sess
     """
     # retrieve date from the request body if needed
     logger.info(f"Updating stock data for date: {date}")
-    df = fetch_stock_data()
+    date_str = date.strftime("%Y%m%d")
+    df = fetch_stock_data(date_str)
     if not df.empty:
         save_stock_data(df)
-        return {"message": "Stock data updated successfully"}
+        return {"message": f"Stock data updated successfully, {len(df)} records"}
     else:
-        return {"error": "Failed to fetch stock data"}
+        return {"error": "Failed to fetch stock data. Check backend logs for details."}
 
 @router.get("/stocks/screened")
 def get_screened_stocks_endpoint(db: Session = Depends(get_db)):

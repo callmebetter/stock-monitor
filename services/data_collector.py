@@ -59,7 +59,10 @@ def sync_trading_calendar() -> dict:
         latest_dates = set(ak_calendar_df["trade_date"].values)
 
         with db_session_scope() as db:
-            cached_dates = set(load_trading_calendar_from_db())
+            # 查询 DB 中所有日期（而非仅 365 天），确保差集计算正确
+            all_rows = db.query(TradingCalendar.trade_date).all()
+            cached_dates = set(row[0] for row in all_rows)
+            logger.debug(f"DB has {len(cached_dates)} dates, AkShare has {len(latest_dates)} dates")
             to_add = latest_dates - cached_dates
             to_remove = cached_dates - latest_dates
 
@@ -184,7 +187,7 @@ def fetch_stock_data(date_str_req: Optional[str] = None) -> pd.DataFrame:
         return df
 
     except Exception as e:
-        logger.error(f"Error fetching stock data: {e}")
+        logger.error(f"Error fetching stock data: {e}", exc_info=True)
         return pd.DataFrame()
 
 
