@@ -40,3 +40,6 @@ logs/
 
 # uv
 .uv/
+
+# 数据缓存
+data/cache/

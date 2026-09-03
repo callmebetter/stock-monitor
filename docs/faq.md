@@ -24,19 +24,24 @@
 
 ```
 stock-monitor/
-├── docs/
-│   └── faq.md
 ├── database/
 │   ├── __init__.py
-│   ├── init_db.py
-│   └── models.py
+│   └── database_utils.py
+├── models/
+│   └── stock_model.py
 ├── services/
 │   ├── data_collector.py
+│   ├── scheduler_service.py
 │   └── stock_analyzer.py
 ├── routes/
 │   └── api_routes.py
+├── helpers/
+│   └── data_cleaner.py
+├── docs/
+│   └── faq.md
 ├── config.py
 ├── main.py
+├── app_logger.py
 ├── pyproject.toml
 └── README.md
 ```
@@ -146,7 +151,7 @@ uv sync
 ## 📌 9. 初始化数据库
 
 ```bash
-python database/init_db.py
+uv run python -m database
 ```
 
 ---
@@ -190,7 +195,7 @@ uv sync
 ### Q3: 如何初始化数据库？
 A3: 运行以下命令来初始化数据库模式：
 ```
-uv run database/init_db.py
+uv run python -m database
 ```
 这将创建所有需要的数据库表。
 

@@ -51,7 +51,7 @@ uv sync
 
 ### 3. Initialize Database Schema
 ```bash
-uv run  database/init_db.py
+uv run python -m database
 ```
 
 ### 4. Start the Application
