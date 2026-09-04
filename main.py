@@ -55,4 +55,4 @@ if __name__ == "__main__":
     # 启动FastAPI应用
     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_config=None)
