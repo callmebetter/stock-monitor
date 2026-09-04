@@ -34,8 +34,14 @@ def get_db():
 
 
 def init_db():
-    """Initialize the database, creating all tables"""
-    Base.metadata.create_all(bind=engine)
+    """Initialize the database, creating all tables.
+
+    DB 不可用时降级运行（黄金前端页面不依赖数据库，快照任务会自行报错）。
+    """
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        logger.error(f"Database init failed, running without DB: {e}")
 
 if __name__ == "__main__":
     init_db()

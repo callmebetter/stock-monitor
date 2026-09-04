@@ -29,10 +29,11 @@ def _normalize_change_pct(v):
 
 
 def _row(code: str, name: str, price, change_pct, volume, turnover, source: str) -> dict:
-    return {"code": code, "name": name or ETF_BY_CODE[code]["name"], "price": price,
+    meta = ETF_BY_CODE[code]
+    return {"code": code, "name": name or meta["name"], "price": price,
             "change_pct": change_pct, "volume": volume, "turnover": turnover,
-            "nav": None, "est_nav": None, "fee": ETF_BY_CODE[code]["fee"],
-            "source": source}
+            "nav": None, "est_nav": None, "fee": meta["fee"],
+            "scale": meta["scale_b"], "source": source}
 
 
 def _sina_symbol(code: str) -> str:

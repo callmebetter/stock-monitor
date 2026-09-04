@@ -21,6 +21,8 @@ dependencies = [
     "httpx",
     # For gold tracker TTL cache
     "cachetools",
+    # For gold web page HTML fragment rendering
+    "jinja2",
 ]
 
 [dependency-groups]

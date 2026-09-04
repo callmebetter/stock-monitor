@@ -1,0 +1,87 @@
+<time id="header-ts" class="num" hx-swap-oob="innerHTML">{{ ts|ts }}</time>
+<div id="tab-body-otc" hx-swap-oob="innerHTML">
+  <div class="card p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="flex items-center gap-2 text-sm font-semibold">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#d4a537]"></span>
+        场外联接基金
+        <span class="text-[11px] font-normal text-muted">低费率优先 · C 类置顶</span>
+        {% if stale %}<span class="badge badge-warning badge-sm font-normal">缓存</span>{% endif %}
+      </h2>
+      <button class="btn btn-ghost btn-xs module-btn"
+              hx-get="/web/gold/fragments/otc" hx-target="#tab-body-otc"
+              hx-swap="innerHTML" hx-disabled-elt="this">
+        <span class="btn-idle">⟳ 刷新本栏</span><span class="btn-busy">刷新中…</span>
+      </button>
+    </div>
+    {% set c_rows = data | selectattr('cls', 'equalto', 'C') | list %}
+    {% set a_rows = data | selectattr('cls', 'equalto', 'A') | list %}
+    <div class="overflow-x-auto">
+      <table class="table table-sm etf-table">
+        <thead>
+          <tr class="text-[11px] text-muted">
+            <th>基金简称</th>
+            <th class="text-right">确认净值</th>
+            <th class="text-right">盘中估值</th>
+            <th class="text-right">估值涨跌</th>
+            <th class="text-right hidden md:table-cell">对应场内</th>
+            <th class="text-right hidden md:table-cell">年费率</th>
+          </tr>
+        </thead>
+        <tbody class="num">
+          {% for r in c_rows %}
+          <tr>
+            <td>
+              <div class="flex items-center gap-2">
+                <span class="font-sans">{{ r.name }}</span>
+                {% if r.code == '008702' %}<span class="badge badge-sm rec-badge font-normal">推荐</span>{% endif %}
+              </div>
+              <div class="text-[10px] text-muted/70">{{ r.code }}</div>
+            </td>
+            <td class="text-right">{{ r.nav|num(4) }}</td>
+            <td class="text-right {{ '' if r.est_nav is none else 'text-gold' }}">{{ r.est_nav|num(4) }}</td>
+            <td class="text-right {{ r.change_pct|pctcls }}">{{ r.change_pct|pct }}</td>
+            <td class="text-right hidden md:table-cell text-muted">{{ r.parent if r.parent else '—' }}</td>
+            <td class="text-right hidden md:table-cell text-muted">{{ '%.2f%%'|format(r.fee * 100) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <details class="mt-2">
+      <summary class="text-[11px] text-muted cursor-pointer select-none hover:text-gold">
+        展开 A 类份额（{{ a_rows|length }}）
+      </summary>
+      <div class="overflow-x-auto mt-2">
+        <table class="table table-sm etf-table">
+          <thead>
+            <tr class="text-[11px] text-muted">
+              <th>基金简称</th>
+              <th class="text-right">确认净值</th>
+              <th class="text-right">盘中估值</th>
+              <th class="text-right">估值涨跌</th>
+              <th class="text-right hidden md:table-cell">对应场内</th>
+              <th class="text-right hidden md:table-cell">年费率</th>
+            </tr>
+          </thead>
+          <tbody class="num">
+            {% for r in a_rows %}
+            <tr class="opacity-90">
+              <td>
+                <span class="font-sans">{{ r.name }}</span>
+                <div class="text-[10px] text-muted/70">{{ r.code }}</div>
+              </td>
+              <td class="text-right">{{ r.nav|num(4) }}</td>
+              <td class="text-right {{ '' if r.est_nav is none else 'text-gold' }}">{{ r.est_nav|num(4) }}</td>
+              <td class="text-right {{ r.change_pct|pctcls }}">{{ r.change_pct|pct }}</td>
+              <td class="text-right hidden md:table-cell text-muted">{{ r.parent if r.parent else '—' }}</td>
+              <td class="text-right hidden md:table-cell text-muted">{{ '%.2f%%'|format(r.fee * 100) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    <div class="text-[11px] text-muted mt-2">💡 盘中估值为参考（由对应场内 ETF 涨跌推导），确认净值以基金公司公告为准</div>
+  </div>
+</div>

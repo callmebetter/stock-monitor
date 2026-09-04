@@ -1,0 +1,55 @@
+<time id="header-ts" class="num" hx-swap-oob="innerHTML">{{ ts|ts }}</time>
+<div id="premium-strip" hx-swap-oob="innerHTML">
+  {% set p = data.premium %}
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="min-w-0">
+      <div class="text-xs text-gold tracking-wider font-medium">沪伦溢价 · 换算</div>
+      <div class="text-[11px] text-muted mt-1">{{ p.formula }}</div>
+    </div>
+    <div class="text-right">
+      <div class="num text-2xl sm:text-3xl text-gold leading-none">
+        {{ p.premium|num(2) if p.premium is not none else '—' }}<span class="text-xs text-muted ml-1">元/克</span>
+      </div>
+      {% if p.implied is not none %}
+      <div class="text-[11px] text-muted mt-1">国际金价折算 {{ p.implied|num(2) }} 元/克</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<div id="mod-intl-body" hx-swap-oob="innerHTML">
+  <div class="card p-4 h-full">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="flex items-center gap-2 text-sm font-semibold">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#58a6ff]"></span>
+        国际金价
+        <span class="text-[11px] font-normal text-muted">伦敦金 · COMEX · 汇率</span>
+        {% if stale %}<span class="badge badge-warning badge-sm font-normal">缓存</span>{% endif %}
+      </h2>
+      <button class="btn btn-ghost btn-xs module-btn"
+              hx-get="/web/gold/fragments/international" hx-target="#mod-intl-body"
+              hx-swap="innerHTML" hx-disabled-elt="this">
+        <span class="btn-idle">⟳ 刷新</span><span class="btn-busy">刷新中…</span>
+      </button>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {% for q in data.quotes %}
+      <div class="stat-tile">
+        <div class="flex items-baseline justify-between gap-1">
+          <span class="text-[11px] text-muted">{{ q.name }}</span>
+        </div>
+        <div class="flex items-baseline gap-2 mt-1.5">
+          <div class="num text-xl sm:text-2xl leading-none">
+            {% if q.symbol == 'USDCNY' %}{{ q.price|num(4) if q.price is not none else '—' }}
+            {% elif q.symbol == 'DXY' %}{{ q.price|num(3) if q.price is not none else '—' }}
+            {% else %}{{ q.price|num(1) if q.price is not none else '—' }}{% endif %}
+          </div>
+          {% if q.change_pct is not none %}
+          <span class="num text-[11px] {{ q.change_pct|pctcls }}">{{ q.change_pct|pct }}</span>
+          {% endif %}
+        </div>
+        <div class="text-[10px] text-muted/70 mt-1">{{ q.unit }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>

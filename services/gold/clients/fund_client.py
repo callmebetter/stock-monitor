@@ -22,7 +22,8 @@ def _empty_row(code: str, source: str = "tiantian-fund") -> dict:
     meta = OTC_BY_CODE[code]
     return {"code": code, "name": meta["name"], "price": None, "change_pct": None,
             "volume": None, "turnover": None, "nav": None, "est_nav": None,
-            "fee": meta["fee"], "source": source}
+            "fee": meta["fee"], "cls": meta["cls"], "parent": meta["parent"],
+            "source": source}
 
 
 def fetch_otc_batch(codes: list[str], parent_changes: dict[str, float] | None = None) -> list[dict]:

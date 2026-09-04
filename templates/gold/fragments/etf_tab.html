@@ -1,0 +1,51 @@
+<time id="header-ts" class="num" hx-swap-oob="innerHTML">{{ ts|ts }}</time>
+<div id="tab-body-{{ tab }}" hx-swap-oob="innerHTML">
+  <div class="card p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="flex items-center gap-2 text-sm font-semibold">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#d4a537]"></span>
+        {{ tab_meta.title }}
+        <span class="text-[11px] font-normal text-muted">场内 ETF · 实时行情</span>
+        {% if stale %}<span class="badge badge-warning badge-sm font-normal">缓存</span>{% endif %}
+      </h2>
+      <button class="btn btn-ghost btn-xs module-btn"
+              hx-get="/web/gold/fragments/etf/{{ tab }}" hx-target="#tab-body-{{ tab }}"
+              hx-swap="innerHTML" hx-disabled-elt="this">
+        <span class="btn-idle">⟳ 刷新本栏</span><span class="btn-busy">刷新中…</span>
+      </button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="table table-sm etf-table">
+        <thead>
+          <tr class="text-[11px] text-muted">
+            <th>基金简称</th>
+            <th class="text-right">最新价</th>
+            <th class="text-right">涨跌幅</th>
+            {% if 'turnover' in tab_meta.cols %}<th class="text-right hidden md:table-cell">成交额</th>{% endif %}
+            {% if 'scale' in tab_meta.cols %}<th class="text-right hidden md:table-cell">规模(约)</th>{% endif %}
+            {% if 'fee' in tab_meta.cols %}<th class="text-right">年费率</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody class="num">
+          {% for r in data %}
+          <tr>
+            <td>
+              <div class="flex items-center gap-2">
+                <span class="font-sans">{{ r.name }}</span>
+                {% if r.code == tab_meta.recommend %}<span class="badge badge-sm rec-badge font-normal">推荐</span>{% endif %}
+              </div>
+              <div class="text-[10px] text-muted/70">{{ r.code }} · {{ '沪' if r.code.startswith('5') else '深' }}</div>
+            </td>
+            <td class="text-right text-[15px]">{{ r.price|num(3) }}</td>
+            <td class="text-right {{ r.change_pct|pctcls }}">{{ r.change_pct|pct }}</td>
+            {% if 'turnover' in tab_meta.cols %}<td class="text-right hidden md:table-cell">{{ r.turnover|yi }}</td>{% endif %}
+            {% if 'scale' in tab_meta.cols %}<td class="text-right hidden md:table-cell">{{ r.scale if r.scale is not none else '—' }}亿</td>{% endif %}
+            {% if 'fee' in tab_meta.cols %}<td class="text-right text-muted">{{ '%.2f%%'|format(r.fee * 100) }}</td>{% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="text-[11px] text-muted mt-2">💡 {{ tab_meta.hint }}</div>
+  </div>
+</div>

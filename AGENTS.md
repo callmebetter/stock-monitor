@@ -111,6 +111,16 @@ stock-monitor/
 ## Changelog
 
 ### 2026-09-04
+- 新增黄金行情前端页面（gold-invest.md PRD M1/M3，htmx 架构）
+- `routes/web_routes.py`：`GET /web/gold` 页面 + 6 个 HTML 片段端点（domestic/international/otc/etf/{tab}/all），直调 services.gold.service 共享 30s 缓存
+- 降级协议：上游硬失败返回 HTTP 204 + HX-Trigger gold-error（htmx 不 swap，旧数据保留）；code=2 渲染「缓存」徽标 + gold-stale 事件
+- `templates/gold/`：page.html（现代金融暗色 UI：#0d1117 底、涨红跌绿、金色签名溢价条、等宽数字、移动端隐藏次要列）+ 4 个片段模板
+- 技术栈：htmx 2.0.4（请求/交换/加载态）+ Alpine 3.17.1（Tab 切换/Toast/懒加载）+ Tailwind + DaisyUI，vendor 库复制入仓 `static/vendor/`，无 setInterval
+- Tab 2~4 首次激活自动拉取一次，此后纯前端切换 + 手动刷新（经确认偏离 PRD §5.1 严格纯切换）
+- `database/__init__.py`：init_db 失败降级运行（黄金前端不依赖 DB）
+- ETF 行补充 scale 字段；OTC 行补充 cls/parent；新增 jinja2 依赖；`tests/test_gold_web.py` 13 个用例
+
+### 2026-09-04
 - 新增黄金行情追踪器后端包（gold-invest.md PRD M2）
 - `services/gold/`：catalog（锁定的 7 ETF + 8 场外标的与 Tab 分类）、30s TTL 缓存 + last-good 降级、4 个上游客户端、7 个聚合服务函数
 - 降级链实测：ETF 走 AkShare → 新浪批量 → 腾讯逐个；伦敦金走新浪 hf_XAU（Yahoo XAUUSD=X 已下架）；场外净值走天天基金 lsjz（fundgz 估值接口已停用，估值改由母 ETF 涨跌推导）
