@@ -110,6 +110,14 @@ stock-monitor/
 
 ## Changelog
 
+### 2026-09-04
+- 新增黄金行情追踪器后端包（gold-invest.md PRD M2）
+- `services/gold/`：catalog（锁定的 7 ETF + 8 场外标的与 Tab 分类）、30s TTL 缓存 + last-good 降级、4 个上游客户端、7 个聚合服务函数
+- 降级链实测：ETF 走 AkShare → 新浪批量 → 腾讯逐个；伦敦金走新浪 hf_XAU（Yahoo XAUUSD=X 已下架）；场外净值走天天基金 lsjz（fundgz 估值接口已停用，估值改由母 ETF 涨跌推导）
+- `models/gold_model.py`：金价/ETF 快照表（混合持久化，每日收盘后快照，非交易日跳过）
+- `routes/gold_routes.py`：PRD §9 全部 7 个端点，统一 `{code, ts, stale, msg, data}` 响应
+- 新增依赖 httpx、cachetools；新增 dev 组 pytest 与 `[tool.pytest.ini_options]`
+
 ### 2026-09-03
 - 简化依赖管理：删除 `requirements.txt`，统一使用 `pyproject.toml`
 - 修复 `pyproject.toml` 行内注释导致 uv 解析失败的问题

@@ -1,5 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from services.data_collector import fetch_stock_data, save_stock_data
+from services.data_collector import fetch_stock_data, save_stock_data, is_trading_day
+from datetime import date
 import time
 import logging
 
@@ -19,6 +20,15 @@ class SchedulerService:
             minute=30,
             second=0,
             id="collect_stock_data",
+            replace_existing=True,
+        )
+        self.scheduler.add_job(
+            func=self._snapshot_gold,
+            trigger="cron",
+            hour=16,
+            minute=0,
+            second=0,
+            id="snapshot_gold",
             replace_existing=True,
         )
         self.scheduler.start()
@@ -46,6 +56,24 @@ class SchedulerService:
                 logger.info("No data collected.")
         except Exception as e:
             logger.error(f"Error collecting data: {e}")
+
+    def _snapshot_gold(self):
+        """每日收盘后保存黄金行情快照（非交易日跳过，需 GOLD_SNAPSHOT=1）"""
+        import config
+
+        if not config.GOLD_CONFIG.get("snapshot", True):
+            logger.info("Gold snapshot disabled (GOLD_SNAPSHOT=0), skipping.")
+            return
+        if not is_trading_day(date.today()):
+            logger.info("Today is not a trading day, skipping gold snapshot.")
+            return
+        try:
+            from services.gold.persistence import snapshot_gold_job
+
+            result = snapshot_gold_job()
+            logger.info(f"Gold snapshot result: {result}")
+        except Exception as e:
+            logger.error(f"Error snapshotting gold data: {e}")
 
     def get_scheduler_status(self):
         """Get current scheduler status"""

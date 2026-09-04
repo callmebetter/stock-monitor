@@ -159,7 +159,12 @@ def fetch_stock_data(date_str_req: Optional[str] = None) -> pd.DataFrame:
             else:
                 raise ValueError(f"Cannot extract date from filename: {csv_path.name}")
         else:
-            df = ak.stock_zh_a_spot_em()
+            # 优先使用东方财富数据源，失败时回退到新浪
+            try:
+                df = ak.stock_zh_a_spot_em()
+            except Exception as e:
+                logger.warning(f"East Money source failed: {e}, falling back to Sina")
+                df = ak.stock_zh_a_spot()
             if df.empty:
                 logger.warning("AkShare returned no data")
                 return pd.DataFrame()

@@ -18,3 +18,10 @@ AKSHARE_CONFIG = {
 SCHEDULER_CONFIG = {
     'timezone': 'Asia/Shanghai'
 }
+
+# 黄金行情追踪器配置（gold-invest.md）
+GOLD_CONFIG = {
+    'timeout': int(os.getenv('GOLD_TIMEOUT', 5)),        # 上游请求超时（秒）
+    'cache_ttl': int(os.getenv('GOLD_CACHE_TTL', 30)),   # 内存缓存 TTL（秒）
+    'snapshot': os.getenv('GOLD_SNAPSHOT', '1') == '1',  # 是否启用每日 DB 快照
+}

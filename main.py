@@ -12,6 +12,7 @@ scheduler_service = SchedulerService()
 # 创建FastAPI实例
 from fastapi import FastAPI
 from routes.api_routes import router as api_router
+from routes.gold_routes import router as gold_router
 
 
 @asynccontextmanager
@@ -44,6 +45,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Stock Monitoring API", lifespan=lifespan)
 
 app.include_router(api_router, prefix="/api")
+app.include_router(gold_router, prefix="/api")
 
 if __name__ == "__main__":
     # 启动FastAPI应用

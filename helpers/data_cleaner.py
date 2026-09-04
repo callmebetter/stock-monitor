@@ -97,6 +97,10 @@ def clean_stock_data(df):
             'market_value', 'circulation_market_value', 'rise_speed',
             'five_minute_change', 'sixty_day_change_percent', 'year_to_date_change_percent'
         ]
+        # 补全缺失列（新浪源缺少部分字段）
+        for col in columns_to_keep:
+            if col not in df_cleaned.columns:
+                df_cleaned[col] = 0
         df_cleaned = df_cleaned[columns_to_keep]
 
         logger.info("股票数据清洗完成")

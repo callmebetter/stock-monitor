@@ -17,4 +17,17 @@ dependencies = [
     "python-dotenv",
     "sqlalchemy",
     "cryptography>=50.0.1",
+    # For gold tracker upstream HTTP clients
+    "httpx",
+    # For gold tracker TTL cache
+    "cachetools",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
