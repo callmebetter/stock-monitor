@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Au(T+D) 走势 · 黄金行情追踪器</title>
+  <script src="/static/vendor/tailwind.js"></script>
+  <link rel="stylesheet" href="/static/vendor/daisyui.css">
+  <style>
+    html { color-scheme: dark; }
+    body {
+      background:
+        radial-gradient(1200px 400px at 80% -10%, rgba(212, 165, 55, 0.05), transparent 60%),
+        #0d1117;
+      color: #e6edf3;
+      font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .num {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+    }
+    .text-up    { color: #f85149; }
+    .text-down  { color: #3fb950; }
+    .text-gold  { color: #d4a537; }
+    .text-muted { color: #8b949e; }
+    .card { background: #161b22; border: 1px solid #21262d; border-radius: 12px; }
+    .stat-tile {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+    .kline-tab {
+      font-size: 12px; padding: 4px 14px; border-radius: 8px;
+      border: 1px solid #30363d; color: #8b949e; cursor: pointer;
+      transition: all .15s ease;
+    }
+    .kline-tab:hover { border-color: rgba(212, 165, 55, .45); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="sticky top-0 z-40 border-b border-[#21262d] bg-[#0d1117]/85 backdrop-blur">
+    <div class="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <a href="/web/gold" class="btn btn-ghost btn-sm px-2 text-muted" title="返回行情页">←</a>
+        <svg class="w-5 h-5 text-gold shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 17l6-6 4 4 8-8"></path>
+          <path d="M21 7v5h-5"></path>
+        </svg>
+        <h1 class="text-sm sm:text-base font-semibold truncate">Au(T+D) 黄金延期 · 走势</h1>
+        <span class="badge badge-sm font-normal hidden sm:inline-flex" style="background:rgba(212,165,55,.12);color:#d4a537;border:1px solid rgba(212,165,55,.3)">日K线</span>
+      </div>
+      <span class="text-[11px] text-muted hidden sm:inline shrink-0">数据来源：汇率表</span>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 pb-16">
+    <section class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+      <div class="stat-tile">
+        <div class="flex items-baseline justify-between gap-1">
+          <span class="text-[11px] text-muted">最新收盘</span>
+        </div>
+        <div class="num text-xl sm:text-2xl mt-1 leading-none" id="sum-close">—</div>
+        <div class="text-[10px] text-muted/70 mt-1" id="sum-date">加载中…</div>
+      </div>
+      <div class="stat-tile">
+        <div class="flex items-baseline justify-between gap-1">
+          <span class="text-[11px] text-muted">涨跌</span>
+        </div>
+        <div class="num text-xl sm:text-2xl mt-1 leading-none text-muted" id="sum-chg">—</div>
+        <div class="text-[10px] text-muted/70 mt-1">相对上一交易日收盘</div>
+      </div>
+      <div class="stat-tile">
+        <div class="flex items-baseline justify-between gap-1">
+          <span class="text-[11px] text-muted">振幅</span>
+        </div>
+        <div class="num text-xl sm:text-2xl mt-1 leading-none" id="sum-amp">—</div>
+        <div class="text-[10px] text-muted/70 mt-1">(最高−最低)/昨收</div>
+      </div>
+      <div class="stat-tile">
+        <div class="flex items-baseline justify-between gap-1">
+          <span class="text-[11px] text-muted">成交量</span>
+        </div>
+        <div class="num text-xl sm:text-2xl mt-1 leading-none" id="sum-vol">—</div>
+        <div class="text-[10px] text-muted/70 mt-1">夜市归属下一交易日</div>
+      </div>
+    </section>
+
+    <section class="card p-4 mt-4">
+      <div id="kline-status" class="hidden text-[11px] num mb-2 px-3 py-1.5 rounded-lg border inline-block"></div>
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div class="flex items-center gap-2" id="kline-tabs">
+          <button class="kline-tab" data-period="day">日K</button>
+          <button class="kline-tab" data-period="week">周K</button>
+          <button class="kline-tab" data-period="month">月K</button>
+        </div>
+        <div class="num text-[11px] flex flex-wrap items-center gap-x-3 gap-y-1" id="ma-values"></div>
+      </div>
+      <div id="kline-chart" class="h-[360px] sm:h-[460px] w-full"></div>
+    </section>
+
+    <p class="text-[10px] text-muted/70 mt-3 px-1">
+      走势数据持久化于本地数据库（每日日盘/夜盘收盘后同步），页面访问时自动保持新鲜；
+      数据库不可用时自动降级直读上游。缩放图表窗口可查看区间最高/最低标记。
+    </p>
+  </main>
+
+  <script src="/static/vendor/echarts.min.js"></script>
+  <script src="/static/js/gold_kline.js"></script>
+</body>
+</html>

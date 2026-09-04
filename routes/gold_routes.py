@@ -1,8 +1,9 @@
 """Gold tracker API routes (PRD §9). Thin handlers delegating to services/gold."""
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
+from services.gold import kline as kline_service
 from services.gold import service
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,12 @@ def get_etf_band():
 def get_etf_main():
     """Tab4 · 主流高流动性（全部 7 只场内 ETF）"""
     return service.get_main()
+
+
+@router.get("/gold/kline")
+def get_gold_kline(days: int = Query(250, ge=1, le=730)):
+    """Au(T+D) 日K线（走势子页面数据源；DB 优先，降级直读上游）"""
+    return kline_service.get_kline(days)
 
 
 @router.get("/etf/all")

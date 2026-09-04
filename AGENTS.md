@@ -111,6 +111,15 @@ stock-monitor/
 ## Changelog
 
 ### 2026-09-04
+- 新增 Au(T+D) 日K线走势（走势子页面，huilvbiao gold_autd_kline 数据源，已验证裸 GET 可用无需认证）
+- `models/gold_model.py`：`gold_kline_daily` 表（复合主键 symbol+trade_date 去重；夜市根归属下一交易日，随夜市推进反复 upsert 直至定型）
+- `services/gold/clients/kline_client.py`：上游客户端 + 归一化；`services/gold/kline.py`：TTL 节流同步（10min）+ 分批 INSERT..ON DUPLICATE KEY UPDATE + 查询信封（DB 优先；DB 失败降级直读上游并 60s 冷却，避免每请求吃连接超时；`database/__init__.py` engine 加 connect_timeout=3）
+- `routes/gold_routes.py`：`GET /api/gold/kline?days=N`（1~730）；`routes/web_routes.py`：`GET /web/gold/trend`（图表数据走前端 fetch JSON，不适用 all-OOB 片段协议）
+- 前端：vendor echarts 5.6.1 + `static/js/gold_kline.js`（蜡烛图/MA5~30/日K→周K月K聚合/dataZoom 窗口高低标记，暗色涨红跌绿，逻辑借鉴 huilvbiao gold_charts.min.js 重写为 vanilla JS）+ `templates/gold/trend.html` + 主页头部走势入口
+- `services/scheduler_service.py`：K线同步 15:45（当日交易日）/ 02:40（前一自然日为交易日，覆盖周五夜市）
+- `tests/test_gold_kline.py` 14 用例，全套 44 通过；实测降级路径 API 0.22s、页面渲染/周月切换正常
+
+### 2026-09-04
 - 落实 gold-web-review.md 遗留建议（Review 结论：all-OOB 修复合适，14/14 测试通过）
 - `routes/web_routes.py`：删除 6 处死代码 `oob` 上下文参数；`fragment_all` 上游并发化（ThreadPoolExecutor，冷缓存 7.4s → 3.2s，热缓存 22ms）；docstring 固化 all-OOB 约定与 20s 浏览器超时的依据（PRD 5s 指上游单路，由 GOLD_CONFIG 强制）
 - 模板清理：4 个片段删无用 `module-btn` class；page.html 删无用 `<body hx-headers>`

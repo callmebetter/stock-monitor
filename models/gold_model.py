@@ -42,3 +42,28 @@ class GoldEtfSnapshot(Base):
 
     def __repr__(self):
         return f"<GoldEtfSnapshot(code='{self.code}', trade_date='{self.trade_date}')>"
+
+
+class GoldKlineDaily(Base):
+    """黄金日K线：第三方源（汇率表）Au(T+D) 日线，upsert 更新（复合主键去重）。
+
+    交易日归属沿用上游 day 字段：夜市（20:00~02:30）归属下一交易日，
+    进行中的 K 线随夜市推进被反复 upsert 直至收盘定型。
+    """
+
+    __tablename__ = 'gold_kline_daily'
+
+    symbol = Column(String(10), nullable=False, primary_key=True, comment='标的，如 AUTD')
+    trade_date = Column(Date, nullable=False, primary_key=True, comment='交易日期')
+    open = Column(DECIMAL(12, 3), comment='开盘价')
+    high = Column(DECIMAL(12, 3), comment='最高价')
+    low = Column(DECIMAL(12, 3), comment='最低价')
+    close = Column(DECIMAL(12, 3), comment='收盘价')
+    change = Column(DECIMAL(12, 3), comment='涨跌额（相对上一交易日收盘）')
+    amplitude = Column(DECIMAL(10, 3), comment='振幅%')
+    volume = Column(BigInteger, comment='成交量（手）')
+    source = Column(String(50), comment='数据源：huilvbiao')
+    ts = Column(TIMESTAMP(timezone=True), server_default=func.current_timestamp(), comment='更新时间UTC')
+
+    def __repr__(self):
+        return f"<GoldKlineDaily(symbol='{self.symbol}', trade_date='{self.trade_date}')>"

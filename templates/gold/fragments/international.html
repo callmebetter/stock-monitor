@@ -35,17 +35,15 @@
       {% for q in data.quotes %}
       <div class="stat-tile">
         <div class="flex items-baseline justify-between gap-1">
-          <span class="text-[11px] text-muted">{{ q.name }}</span>
-        </div>
-        <div class="flex items-baseline gap-2 mt-1.5">
-          <div class="num text-xl sm:text-2xl leading-none">
-            {% if q.symbol == 'USDCNY' %}{{ q.price|num(4) if q.price is not none else '—' }}
-            {% elif q.symbol == 'DXY' %}{{ q.price|num(3) if q.price is not none else '—' }}
-            {% else %}{{ q.price|num(1) if q.price is not none else '—' }}{% endif %}
-          </div>
+          <span class="text-[11px] text-muted truncate min-w-0" title="{{ q.name }}">{{ q.name }}</span>
           {% if q.change_pct is not none %}
-          <span class="num text-[11px] {{ q.change_pct|pctcls }}">{{ q.change_pct|pct }}</span>
+          <span class="num text-[10px] shrink-0 {{ q.change_pct|pctcls }}">{{ q.change_pct|pct }}</span>
           {% endif %}
+        </div>
+        <div class="num text-xl sm:text-2xl mt-1.5 leading-none">
+          {% if q.symbol == 'USDCNY' %}{{ q.price|num(4) if q.price is not none else '—' }}
+          {% elif q.symbol == 'DXY' %}{{ q.price|num(3) if q.price is not none else '—' }}
+          {% else %}{{ q.price|num(1) if q.price is not none else '—' }}{% endif %}
         </div>
         <div class="text-[10px] text-muted/70 mt-1">{{ q.unit }}</div>
       </div>

@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 # Database connection string
 SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{config.DB_CONFIG['user']}:{config.DB_CONFIG['password']}@{config.DB_CONFIG['host']}:{config.DB_CONFIG['port']}/{config.DB_CONFIG['database']}"
 
-# Create database engine
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+# Create database engine（connect_timeout 缩短 DB 不可用时的降级延迟，本地库正常连接 <100ms）
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"connect_timeout": 3})
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

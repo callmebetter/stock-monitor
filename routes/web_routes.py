@@ -97,6 +97,16 @@ def page(request: Request):
     return _render(request, "gold/page.html", {"etf_tabs": ETF_TABS})
 
 
+@router.get("/trend", response_class=HTMLResponse)
+def trend_page(request: Request):
+    """走势子页面（Au(T+D) 日K）。
+
+    图表数据由前端 fetch /api/gold/kline（ECharts 需要原始 JSON，
+    不适用 all-OOB 片段协议）；页面骨架为静态渲染，无 htmx 交互。
+    """
+    return _render(request, "gold/trend.html", {})
+
+
 @router.get("/fragments/domestic", response_class=HTMLResponse)
 def fragment_domestic(request: Request):
     return _envelope_fragment(request, service.get_domestic(), "gold/fragments/domestic.html", {})

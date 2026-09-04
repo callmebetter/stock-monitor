@@ -31,6 +31,27 @@ class SchedulerService:
             id="snapshot_gold",
             replace_existing=True,
         )
+        # Au(T+D) 日K线：日盘收盘后（当日为交易日）+ 夜盘收盘后（前一自然日
+        # 为交易日，即周一~周五夜市 20:00~次日02:30，周五夜市归属下周一）
+        self.scheduler.add_job(
+            func=self._sync_kline,
+            trigger="cron",
+            hour=15,
+            minute=45,
+            second=0,
+            id="sync_gold_kline_day",
+            replace_existing=True,
+        )
+        self.scheduler.add_job(
+            func=self._sync_kline,
+            trigger="cron",
+            hour=2,
+            minute=40,
+            second=0,
+            id="sync_gold_kline_night",
+            kwargs={"day_offset": 1},
+            replace_existing=True,
+        )
         self.scheduler.start()
         logger.info("Scheduler started")
 
@@ -74,6 +95,21 @@ class SchedulerService:
             logger.info(f"Gold snapshot result: {result}")
         except Exception as e:
             logger.error(f"Error snapshotting gold data: {e}")
+
+    def _sync_kline(self, day_offset: int = 0):
+        """黄金日K线同步：day_offset=0 校验当日为交易日（日盘 15:45）；
+        day_offset=1 校验前一自然日为交易日（夜盘 02:40，覆盖周五夜市）。
+        非交易日本身无新 K 线，upsert 幂等，重复同步无害。"""
+        if not is_trading_day(date.today() - timedelta(days=day_offset)):
+            logger.info("Trading-day check failed (offset=%d), skipping kline sync.", day_offset)
+            return
+        try:
+            from services.gold.kline import sync_kline
+
+            result = sync_kline()
+            logger.info(f"Gold kline sync result: {result}")
+        except Exception as e:
+            logger.error(f"Error syncing gold kline: {e}")
 
     def get_scheduler_status(self):
         """Get current scheduler status"""
