@@ -111,6 +111,12 @@ stock-monitor/
 ## Changelog
 
 ### 2026-09-04
+- 落实 gold-web-review.md 遗留建议（Review 结论：all-OOB 修复合适，14/14 测试通过）
+- `routes/web_routes.py`：删除 6 处死代码 `oob` 上下文参数；`fragment_all` 上游并发化（ThreadPoolExecutor，冷缓存 7.4s → 3.2s，热缓存 22ms）；docstring 固化 all-OOB 约定与 20s 浏览器超时的依据（PRD 5s 指上游单路，由 GOLD_CONFIG 强制）
+- 模板清理：4 个片段删无用 `module-btn` class；page.html 删无用 `<body hx-headers>`
+- 32/32 测试通过，uvicorn 实测页面 150ms / fragments/all 冷 3.2s 热 22ms
+
+### 2026-09-04
 - 新增黄金行情前端页面（gold-invest.md PRD M1/M3，htmx 架构）
 - `routes/web_routes.py`：`GET /web/gold` 页面 + 6 个 HTML 片段端点（domestic/international/otc/etf/{tab}/all），直调 services.gold.service 共享 30s 缓存
 - 降级协议：上游硬失败返回 HTTP 204 + HX-Trigger gold-error（htmx 不 swap，旧数据保留）；code=2 渲染「缓存」徽标 + gold-stale 事件

@@ -99,7 +99,7 @@
     }
   </style>
 </head>
-<body x-data="goldPage()" hx-headers='{}'>
+<body x-data="goldPage()">
 
   <header class="sticky top-0 z-40 border-b border-[#21262d] bg-[#0d1117]/85 backdrop-blur">
     <div class="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between gap-3">
@@ -123,41 +123,45 @@
 
   <main class="mx-auto max-w-6xl px-4 pb-24">
     <section class="grid md:grid-cols-2 gap-4 mt-4">
-      <div id="mod-domestic" hx-get="/web/gold/fragments/domestic" hx-trigger="load" hx-swap="innerHTML">
-        <div class="card p-4">
-          <div class="flex justify-between items-center mb-3">
-            <div class="skeleton h-5 w-36"></div>
-            <div class="skeleton h-6 w-14"></div>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {% for i in range(4) %}
-            <div class="stat-tile">
-              <div class="skeleton h-3 w-14 mb-2"></div>
-              <div class="skeleton h-6 w-20"></div>
+      <div id="mod-domestic" hx-get="/web/gold/fragments/domestic" hx-trigger="load" hx-swap="none">
+        <div id="mod-domestic-body" class="h-full">
+          <div class="card p-4 h-full">
+            <div class="flex justify-between items-center mb-3">
+              <div class="skeleton h-5 w-36"></div>
+              <div class="skeleton h-6 w-14"></div>
             </div>
-            {% endfor %}
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {% for i in range(4) %}
+              <div class="stat-tile">
+                <div class="skeleton h-3 w-14 mb-2"></div>
+                <div class="skeleton h-6 w-20"></div>
+              </div>
+              {% endfor %}
+            </div>
           </div>
         </div>
       </div>
-      <div id="mod-intl" hx-get="/web/gold/fragments/international" hx-trigger="load" hx-swap="innerHTML">
-        <div class="card p-4">
-          <div class="flex justify-between items-center mb-3">
-            <div class="skeleton h-5 w-36"></div>
-            <div class="skeleton h-6 w-14"></div>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {% for i in range(4) %}
-            <div class="stat-tile">
-              <div class="skeleton h-3 w-14 mb-2"></div>
-              <div class="skeleton h-6 w-20"></div>
+      <div id="mod-intl" hx-get="/web/gold/fragments/international" hx-trigger="load" hx-swap="none">
+        <div id="mod-intl-body" class="h-full">
+          <div class="card p-4 h-full">
+            <div class="flex justify-between items-center mb-3">
+              <div class="skeleton h-5 w-36"></div>
+              <div class="skeleton h-6 w-14"></div>
             </div>
-            {% endfor %}
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {% for i in range(4) %}
+              <div class="stat-tile">
+                <div class="skeleton h-3 w-14 mb-2"></div>
+                <div class="skeleton h-6 w-20"></div>
+              </div>
+              {% endfor %}
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <div id="premium-strip" class="premium-strip mt-4 flex items-center justify-between opacity-50">
+    <div id="premium-strip" class="premium-strip mt-4 flex items-center justify-between">
       <div>
         <div class="text-xs text-gold tracking-wider font-medium">沪伦溢价 · 换算</div>
         <div class="text-[11px] text-muted mt-1">国内金价 ≈ 国际金价 × USD/CNY ÷ 31.1035 + 境内溢价</div>
@@ -174,20 +178,24 @@
       </div>
 
       <div id="tab-otc" x-show="tab === 'otc'" class="mt-4" role="tabpanel"
-           hx-get="/web/gold/fragments/otc" hx-trigger="load" hx-swap="innerHTML">
-        <div id="tab-body-otc" class="card p-4">
-          <div class="skeleton h-5 w-40 mb-4"></div>
-          {% for i in range(4) %}<div class="skeleton h-8 w-full mb-2"></div>{% endfor %}
+           hx-get="/web/gold/fragments/otc" hx-trigger="load" hx-swap="none">
+        <div id="tab-body-otc">
+          <div class="card p-4">
+            <div class="skeleton h-5 w-40 mb-4"></div>
+            {% for i in range(4) %}<div class="skeleton h-8 w-full mb-2"></div>{% endfor %}
+          </div>
         </div>
       </div>
 
       {% for key in ['lowfee', 'band', 'main'] %}
       <div id="tab-{{ key }}" x-show="tab === '{{ key }}'" x-cloak class="mt-4" role="tabpanel"
-           hx-get="/web/gold/fragments/etf/{{ key }}" hx-trigger="gold-load" hx-swap="innerHTML">
-        <div id="tab-body-{{ key }}" class="card p-4">
-          <div class="skeleton h-5 w-40 mb-4"></div>
-          {% for i in range(3) %}<div class="skeleton h-8 w-full mb-2"></div>{% endfor %}
-          <div class="text-[11px] text-muted mt-3">首次进入本栏自动加载一次，此后可手动刷新</div>
+           hx-get="/web/gold/fragments/etf/{{ key }}" hx-trigger="gold-load" hx-swap="none">
+        <div id="tab-body-{{ key }}">
+          <div class="card p-4">
+            <div class="skeleton h-5 w-40 mb-4"></div>
+            {% for i in range(3) %}<div class="skeleton h-8 w-full mb-2"></div>{% endfor %}
+            <div class="text-[11px] text-muted mt-3">首次进入本栏自动加载一次，此后可手动刷新</div>
+          </div>
         </div>
       </div>
       {% endfor %}
@@ -212,7 +220,7 @@
   <script src="/static/vendor/htmx.js"></script>
   <script defer src="/static/vendor/alpine.js"></script>
   <script>
-    htmx.config.timeout = 5000;
+    htmx.config.timeout = 20000;
 
     document.addEventListener('alpine:init', () => {
       Alpine.store('toast', {

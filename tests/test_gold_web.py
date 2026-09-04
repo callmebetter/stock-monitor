@@ -3,6 +3,7 @@
 Service functions are mocked at services.gold.service; no network or DB.
 """
 import json
+import re
 
 import pytest
 from fastapi.testclient import TestClient
@@ -92,6 +93,15 @@ def test_page_renders_shell(client):
     assert "/static/vendor/htmx.js" in html
     assert "/static/vendor/alpine.js" in html
     assert "setInterval" not in html
+
+
+def test_page_shell_contains_oob_target_ids(client):
+    # 片段全部为 OOB 载荷，页面必须存在对应目标节点（否则 OOB swap 落空，
+    # 且外层容器 innerHTML 主 swap 会擦除骨架屏后留下空白模块）
+    html = client.get("/web/gold").text
+    for target in ("mod-domestic-body", "mod-intl-body", "tab-body-otc",
+                   "tab-body-lowfee", "tab-body-band", "tab-body-main"):
+        assert f'id="{target}"' in html, target
 
 
 def test_static_vendor_served(client):

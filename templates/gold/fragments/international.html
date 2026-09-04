@@ -25,9 +25,9 @@
         <span class="text-[11px] font-normal text-muted">伦敦金 · COMEX · 汇率</span>
         {% if stale %}<span class="badge badge-warning badge-sm font-normal">缓存</span>{% endif %}
       </h2>
-      <button class="btn btn-ghost btn-xs module-btn"
+      <button class="btn btn-ghost btn-xs"
               hx-get="/web/gold/fragments/international" hx-target="#mod-intl-body"
-              hx-swap="innerHTML" hx-disabled-elt="this">
+              hx-swap="none" hx-disabled-elt="this">
         <span class="btn-idle">⟳ 刷新</span><span class="btn-busy">刷新中…</span>
       </button>
     </div>

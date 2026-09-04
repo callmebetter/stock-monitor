@@ -8,9 +8,9 @@
         <span class="text-[11px] font-normal text-muted">低费率优先 · C 类置顶</span>
         {% if stale %}<span class="badge badge-warning badge-sm font-normal">缓存</span>{% endif %}
       </h2>
-      <button class="btn btn-ghost btn-xs module-btn"
+      <button class="btn btn-ghost btn-xs"
               hx-get="/web/gold/fragments/otc" hx-target="#tab-body-otc"
-              hx-swap="innerHTML" hx-disabled-elt="this">
+              hx-swap="none" hx-disabled-elt="this">
         <span class="btn-idle">⟳ 刷新本栏</span><span class="btn-busy">刷新中…</span>
       </button>
     </div>

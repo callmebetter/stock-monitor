@@ -3,6 +3,15 @@
 现有 /api/* JSON 端点保留；/web/gold 页面通过片段端点直调
 services.gold.service（同进程、共享 30s 缓存），服务端渲染 HTML。
 
+⚠️ all-OOB 约定：本模块所有片段响应均为纯 OOB 载荷（响应内每个顶层
+元素都带 hx-swap-oob，无正常主内容），消费者必须以 hx-swap="none"
+发起请求（页面初始容器与各「刷新本栏」按钮均已如此配置）。
+新增片段模板时，顶层元素必须携带 hx-swap-oob 并匹配页面上的目标 id。
+
+浏览器侧超时 20s（page.html 内 htmx.config.timeout）：/fragments/all
+聚合 6 路上游，冷缓存耗时约等于最慢一路，远超 PRD 的上游 5s 单路
+超时（后者由 GOLD_CONFIG 在服务层强制，与本跳无关）。
+
 降级协议：
 - envelope code=1（上游硬失败）→ HTTP 204 + HX-Trigger gold-error，
   htmx 对 204 不 swap，旧数据原样保留，仅弹 Toast。
@@ -10,6 +19,7 @@ services.gold.service（同进程、共享 30s 缓存），服务端渲染 HTML�
 """
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 from fastapi import APIRouter, Request
@@ -89,17 +99,17 @@ def page(request: Request):
 
 @router.get("/fragments/domestic", response_class=HTMLResponse)
 def fragment_domestic(request: Request):
-    return _envelope_fragment(request, service.get_domestic(), "gold/fragments/domestic.html", {"oob": False})
+    return _envelope_fragment(request, service.get_domestic(), "gold/fragments/domestic.html", {})
 
 
 @router.get("/fragments/international", response_class=HTMLResponse)
 def fragment_international(request: Request):
-    return _envelope_fragment(request, service.get_international(), "gold/fragments/international.html", {"oob": False})
+    return _envelope_fragment(request, service.get_international(), "gold/fragments/international.html", {})
 
 
 @router.get("/fragments/otc", response_class=HTMLResponse)
 def fragment_otc(request: Request):
-    return _envelope_fragment(request, service.get_otc(), "gold/fragments/otc_tab.html", {"oob": False})
+    return _envelope_fragment(request, service.get_otc(), "gold/fragments/otc_tab.html", {})
 
 
 @router.get("/fragments/etf/{tab}", response_class=HTMLResponse)
@@ -108,31 +118,49 @@ def fragment_etf(tab: str, request: Request):
         return Response(status_code=404)
     getters = {"lowfee": service.get_lowfee, "band": service.get_band, "main": service.get_main}
     return _envelope_fragment(request, getters[tab](), "gold/fragments/etf_tab.html",
-                              {"tab": tab, "tab_meta": ETF_TABS[tab], "oob": False})
+                              {"tab": tab, "tab_meta": ETF_TABS[tab]})
+
+
+def _fail_env(exc: Exception) -> dict:
+    logger.warning("gold fragment upstream error: %s", exc)
+    return {"code": 1, "ts": 0, "stale": False, "msg": "数据获取失败，请稍后重试", "data": []}
 
 
 @router.get("/fragments/all", response_class=HTMLResponse)
 def fragment_all(request: Request):
-    """刷新全部：一次请求渲染全部模块，经 hx-swap-oob 一次换 6 处。"""
+    """刷新全部：一次请求渲染全部模块，经 hx-swap-oob 一次换 6 处。
+
+    上游并发拉取（ThreadPoolExecutor），总耗时 ≈ 最慢单路；
+    单路失败时该模块旧数据保留，其余照常更新；全部失败返回 204。
+    """
     specs = [
-        ("gold/fragments/domestic.html", {"oob": True}, service.get_domestic),
-        ("gold/fragments/international.html", {"oob": True}, service.get_international),
-        ("gold/fragments/otc_tab.html", {"oob": True}, service.get_otc),
+        ("gold/fragments/domestic.html", {}, service.get_domestic),
+        ("gold/fragments/international.html", {}, service.get_international),
+        ("gold/fragments/otc_tab.html", {}, service.get_otc),
     ]
     getters = {"lowfee": service.get_lowfee, "band": service.get_band, "main": service.get_main}
     for tab in ("lowfee", "band", "main"):
         specs.append(("gold/fragments/etf_tab.html",
-                      {"tab": tab, "tab_meta": ETF_TABS[tab], "oob": True}, getters[tab]))
+                      {"tab": tab, "tab_meta": ETF_TABS[tab]}, getters[tab]))
+
+    with ThreadPoolExecutor(max_workers=len(specs)) as pool:
+        futures = [pool.submit(spec[2]) for spec in specs]
+        envs = []
+        for fut in futures:
+            try:
+                envs.append(fut.result())
+            except Exception as e:  # 服务层约定不抛异常，此处仅兜底
+                envs.append(_fail_env(e))
+
     parts = []
     failed = 0
-    for template, ctx, getter in specs:
-        env = getter()
+    for (template, ctx, _), env in zip(specs, envs):
         if env.get("code") == 1:
             failed += 1  # 该模块旧数据保留，其余照常更新
             continue
         resp = _envelope_fragment(request, env, template, dict(ctx))
         parts.append(resp.body.decode("utf-8"))
     if failed == len(specs):
-        msg = "数据获取失败，请稍后重试"
-        return Response(status_code=204, headers={"HX-Trigger": json.dumps({"gold-error": msg})})
+        return Response(status_code=204,
+                        headers={"HX-Trigger": json.dumps({"gold-error": "数据获取失败，请稍后重试"})})
     return HTMLResponse("".join(parts))
