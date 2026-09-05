@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>截图拼接 · 手机版</title>
+<!--
+  截图拼接工具（移动端优先，纯浏览器端处理，图片不上传服务端）。
+  Cropper.js 1.6.2 已 vendor 入仓 static/vendor/cropper/，无外部 CDN 依赖。
+  由 routes/page_routes.py 的 GET /web/tools/stitch 提供。
+-->
+<link rel="stylesheet" href="/static/vendor/cropper/cropper.min.css" />
+<style>
+  :root { --bg:#101418; --card:#1b2129; --line:#2a333f; --txt:#eef2f6; --mut:#9aa7b5; --acc:#2f81f7; --ok:#16a34a; --warn:#f59e0b; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+  header { position:sticky; top:0; z-index:5; background:#0c0f13; border-bottom:1px solid var(--line); padding:12px 14px; }
+  header h1 { margin:0; font-size:17px; }
+  header p { margin:4px 0 0; font-size:12px; color:var(--mut); }
+  main { padding:12px 12px 120px; max-width:640px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; }
+  .card h2 { margin:0 0 8px; font-size:14px; }
+  .hint { font-size:12px; color:var(--mut); line-height:1.6; }
+  .upload-btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px; border-radius:12px; border:1.5px dashed #3b4757; background:#141b23; color:#fff; font-size:16px; font-weight:700; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .seg { display:flex; background:#0f141b; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .seg button { flex:1; border:0; padding:10px 14px; background:transparent; color:var(--mut); font-size:14px; font-weight:700; min-width:90px; }
+  .seg button.on { background:var(--acc); color:#fff; }
+  select, input[type=number] { background:#0f141b; color:#fff; border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:14px; }
+  input[type=range] { width:130px; accent-color:var(--acc); }
+  .swatches { display:flex; gap:8px; }
+  .sw { width:40px; height:30px; border-radius:8px; border:2px solid transparent; cursor:pointer; }
+  .sw.on { border-color:var(--acc); }
+  #list { display:flex; flex-direction:column; gap:10px; }
+  .item { display:flex; gap:10px; background:#0f141b; border:1px solid var(--line); border-radius:12px; padding:8px; align-items:center; }
+  .item img.th { width:64px; height:96px; object-fit:cover; border-radius:8px; background:#000; flex-shrink:0; }
+  .item .meta { flex:1; min-width:0; }
+  .item .meta b { display:block; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .item .meta span { font-size:11px; color:var(--mut); }
+  .badge { display:inline-block; font-size:11px; padding:2px 6px; border-radius:20px; background:#243041; color:#bcd; margin-top:4px; }
+  .badge.cut { background:#12391f; color:#7dffa9; }
+  .ibtns { display:flex; flex-direction:column; gap:6px; }
+  .ibtns .r { display:flex; gap:6px; }
+  button.btn { border:1px solid var(--line); background:#222c38; color:#fff; border-radius:9px; padding:9px 10px; font-size:13px; font-weight:600; }
+  button.btn:active { transform:scale(.97); }
+  button.primary { background:var(--acc); border-color:var(--acc); }
+  button.success { background:var(--ok); border-color:var(--ok); }
+  button.ghost { background:transparent; }
+  button.big { width:100%; padding:14px; font-size:16px; border-radius:12px; }
+  button:disabled { opacity:.4; }
+  #previewWrap { background:#000; border-radius:10px; overflow:auto; max-height:60vh; display:flex; justify-content:center; border:1px solid var(--line); }
+  #previewCanvas { max-width:100%; height:auto; }
+  .dock { position:fixed; left:0; right:0; bottom:0; z-index:6; background:rgba(12,15,19,.96); border-top:1px solid var(--line); padding:10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .dock .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; max-width:640px; margin:0 auto; }
+  /* crop modal */
+  #cropModal { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.92); display:none; flex-direction:column; }
+  #cropModal.open { display:flex; }
+  #cropModal .top { padding:10px 12px; display:flex; gap:8px; align-items:center; justify-content:space-between; }
+  #cropBox { flex:1; min-height:0; padding:0 8px; }
+  #cropBox img { max-width:100%; display:block; }
+  #cropModal .bot { padding:10px 12px calc(12px + env(safe-area-inset-bottom)); display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📱 截图拼接</h1>
+  <p>上传 → 裁剪 → 横/竖合并 → 预览 → 撤销重合 → 保存到手机</p>
+</header>
+<main>
+  <div class="card">
+    <h2>1 · 上传截图（可多次追加）</h2>
+    <input id="file" type="file" accept="image/*" multiple hidden />
+    <button class="upload-btn" id="pickBtn">＋ 选择 / 拍摄截图</button>
+    <p class="hint">支持 JPG / PNG / WebP；iOS 请用 Safari / 微信内置浏览器打开；单张建议 &lt;15MB，最多 12 张。</p>
+  </div>
+
+  <div class="card">
+    <h2>2 · 排序与裁剪（<span id="count">0</span> 张）</h2>
+    <div id="list"></div>
+    <p class="hint" id="emptyTip">还没有图片，请先上传。点【裁剪】可框选保留区域（可拖拽 / 缩放 / 移动），裁剪可反复修改，不破坏原图。</p>
+  </div>
+
+  <div class="card">
+    <h2>3 · 合并设置</h2>
+    <div class="row" style="margin-bottom:10px">
+      <div class="seg" style="flex:1">
+        <button id="dirV" class="on">⬇ 纵向</button>
+        <button id="dirH">➡ 横向</button>
+      </div>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <label style="font-size:13px">缝隙 <input id="gap" type="number" value="0" min="0" max="60" step="2" style="width:64px"> px</label>
+      <label style="font-size:13px">背景</label>
+    </div>
+    <div class="row" style="margin:8px 0">
+      <div class="swatches">
+        <div class="sw on" data-bg="#ffffff" title="白" style="background:#fff"></div>
+        <div class="sw" data-bg="#000000" title="黑" style="background:#000;border-color:#444"></div>
+        <div class="sw" data-bg="transparent" title="透明(PNG)" style="background:repeating-conic-gradient(#666 0 25%,#fff 0 50%) 0 0/14px 14px"></div>
+      </div>
+      <div class="seg" id="fmtSeg">
+        <button data-fmt="png" class="on">PNG</button>
+        <button data-fmt="jpeg">JPG</button>
+      </div>
+      <label style="font-size:12px;color:var(--mut)">JPG质量 <input id="quality" type="range" min="60" max="95" value="90"> <span id="qv">90</span></label>
+    </div>
+    <p class="hint">纵向：统一宽度为最宽图等比缩放；横向：统一高度为最高图等比缩放。透明背景仅 PNG 有效。</p>
+  </div>
+
+  <div class="card">
+    <h2>4 · 预览（<span id="histInfo">无历史</span>）</h2>
+    <div id="previewWrap"><span class="hint" style="padding:20px" id="pvTip">点底部【生成预览】查看效果</span><canvas id="previewCanvas" style="display:none"></canvas></div>
+    <p class="hint" id="sizeInfo"></p>
+  </div>
+</main>
+
+<div class="dock">
+  <div class="grid">
+    <button class="btn primary" id="genBtn">生成预览</button>
+    <button class="btn" id="undoBtn" disabled>↩ 撤销</button>
+    <button class="btn success" id="saveBtn" disabled>💾 保存</button>
+  </div>
+</div>
+
+<div id="cropModal">
+  <div class="top">
+    <b id="cropTitle">裁剪</b>
+    <span class="hint">单指拖拽 · 双指缩放 · 可旋转</span>
+  </div>
+  <div id="cropBox"><img id="cropImg" alt="" /></div>
+  <div class="bot">
+    <button class="btn ghost" id="cropCancel">取消</button>
+    <button class="btn" id="cropReset">重置</button>
+    <button class="btn primary" id="cropOk">✓ 确认</button>
+  </div>
+</div>
+
+<script src="/static/vendor/cropper/cropper.min.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+let images = []; // {id,name,url,el,w,h,crop:{x,y,width,height}|null,thumb}
+let direction = 'vertical', bg = '#ffffff', fmt = 'png';
+let history = []; // dataURL stack
+let seq = 0;
+
+$('#pickBtn').onclick = () => $('#file').click();
+$('#file').onchange = e => addFiles(e.target.files, () => e.target.value = '');
+
+async function addFiles(fileList, done) {
+  const files = [...fileList].slice(0, 12 - images.length);
+  if (images.length >= 12) return alert('最多 12 张');
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) continue;
+    const url = URL.createObjectURL(f);
+    try {
+      const el = await loadImage(url);
+      images.push({ id: ++seq, name: f.name || ('截图' + seq), url, el, w: el.naturalWidth, h: el.naturalHeight, crop: null, thumb: url });
+    } catch { URL.revokeObjectURL(url); alert('无法读取：' + f.name); }
+  }
+  render(); done && done();
+}
+function loadImage(url) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; }); }
+const eff = it => it.crop ? { w: Math.round(it.crop.width), h: Math.round(it.crop.height) } : { w: it.w, h: it.h };
+
+function render() {
+  $('#count').textContent = images.length;
+  $('#emptyTip').style.display = images.length ? 'none' : 'block';
+  const list = $('#list'); list.innerHTML = '';
+  images.forEach((it, idx) => {
+    const e = eff(it);
+    const d = document.createElement('div'); d.className = 'item';
+    d.innerHTML = `<img class="th" src="${it.thumb}">
+      <div class="meta"><b>${idx + 1}. ${escapeHtml(it.name)}</b>
+      <span>${e.w}×${e.h}px${it.crop ? ' · 已裁剪' : ''}</span><br>
+      <span class="badge ${it.crop ? 'cut' : ''}">${it.crop ? '✂ 已裁剪（可重裁）' : '原图'}</span></div>
+      <div class="ibtns"><div class="r">
+        <button class="btn" data-a="up">↑</button><button class="btn" data-a="dn">↓</button><button class="btn" data-a="del">✕</button>
+      </div><button class="btn primary" data-a="crop">✂ 裁剪</button></div>`;
+    d.querySelectorAll('button').forEach(b => b.onclick = () => act(idx, b.dataset.a));
+    list.appendChild(d);
+  });
+}
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function act(idx, a) {
+  if (a === 'up' && idx > 0) [images[idx-1], images[idx]] = [images[idx], images[idx-1]];
+  if (a === 'dn' && idx < images.length-1) [images[idx+1], images[idx]] = [images[idx], images[idx+1]];
+  if (a === 'del') images.splice(idx, 1);
+  if (a === 'crop') openCrop(idx);
+  render();
+}
+
+// ---- settings ----
+$('#dirV').onclick = () => { direction='vertical'; $('#dirV').classList.add('on'); $('#dirH').classList.remove('on'); };
+$('#dirH').onclick = () => { direction='horizontal'; $('#dirH').classList.add('on'); $('#dirV').classList.remove('on'); };
+document.querySelectorAll('.sw').forEach(s => s.onclick = () => { document.querySelectorAll('.sw').forEach(x=>x.classList.remove('on')); s.classList.add('on'); bg = s.dataset.bg; });
+document.querySelectorAll('#fmtSeg button').forEach(b => b.onclick = () => { document.querySelectorAll('#fmtSeg button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); fmt = b.dataset.fmt; });
+$('#quality').oninput = e => $('#qv').textContent = e.target.value;
+
+// ---- cropper ----
+let cropper = null, cropIdx = -1;
+function openCrop(idx) {
+  cropIdx = idx; const it = images[idx];
+  $('#cropTitle').textContent = `裁剪 · 第 ${idx+1} 张`;
+  const img = $('#cropImg');
+  if (cropper) { cropper.destroy(); cropper = null; }
+  img.src = it.url;
+  $('#cropModal').classList.add('open');
+  img.onload = () => {
+    cropper = new Cropper(img, { viewMode: 1, dragMode: 'crop', autoCropArea: 0.9, movable: true, zoomable: true, rotatable: false, guides: true, background: false });
+    if (it.crop) { try { cropper.setData({ x: it.crop.x, y: it.crop.y, width: it.crop.width, height: it.crop.height }); } catch(e){} }
+  };
+}
+$('#cropCancel').onclick = closeCrop;
+$('#cropReset').onclick = () => { if (cropper) cropper.reset(); else if (cropIdx>=0) { images[cropIdx].crop=null; images[cropIdx].thumb=images[cropIdx].url; } };
+$('#cropOk').onclick = () => {
+  const it = images[cropIdx];
+  if (cropper) {
+    const d = cropper.getData(true); // natural px
+    if (d.width < 4 || d.height < 4) return alert('裁剪区域太小');
+    it.crop = { x: Math.max(0,d.x), y: Math.max(0,d.y), width: d.width, height: d.height };
+    it.thumb = cropper.getCroppedCanvas({ maxWidth: 512 }).toDataURL('image/jpeg', .8);
+  }
+  closeCrop(); render();
+};
+function closeCrop(){ $('#cropModal').classList.remove('open'); if (cropper){cropper.destroy();cropper=null;} }
+
+// ---- merge ----
+$('#genBtn').onclick = async () => {
+  if (!images.length) return alert('请先上传截图');
+  const gap = Math.max(0, Math.min(60, parseInt($('#gap').value || '0', 10)));
+  const sizes = images.map(eff);
+  let TW, TH, slots = [];
+  if (direction === 'vertical') {
+    TW = Math.max(...sizes.map(s => s.w));
+    let y = 0;
+    images.forEach((it, i) => { const s = sizes[i], h = Math.round(s.h * TW / s.w); slots.push({ it, dw: TW, dh: h, dx: 0, dy: y }); y += h + gap; });
+    TH = y - (images.length > 1 ? gap : 0);
+  } else {
+    TH = Math.max(...sizes.map(s => s.h));
+    let x = 0;
+    images.forEach((it, i) => { const s = sizes[i], w = Math.round(s.w * TH / s.h); slots.push({ it, dw: w, dh: TH, dx: x, dy: 0 }); x += w + gap; });
+    TW = x - (images.length > 1 ? gap : 0);
+  }
+  if (TW * TH > 16000 * 16000) return alert('合成尺寸过大，请减少图片或先裁剪');
+  const cv = $('#previewCanvas');
+  cv.width = TW; cv.height = TH;
+  const ctx = cv.getContext('2d');
+  const transparent = bg === 'transparent';
+  if (!transparent) { ctx.fillStyle = bg; ctx.fillRect(0, 0, TW, TH); } else ctx.clearRect(0, 0, TW, TH);
+  for (const s of slots) {
+    const { it } = s;
+    const sx = it.crop ? it.crop.x : 0, sy = it.crop ? it.crop.y : 0;
+    const sw = it.crop ? it.crop.width : it.w, sh = it.crop ? it.crop.height : it.h;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(it.el, sx, sy, sw, sh, s.dx, s.dy, s.dw, s.dh);
+  }
+  $('#pvTip')?.remove(); cv.style.display = 'block';
+  $('#sizeInfo').textContent = `输出 ${TW}×${TH}px · ${direction === 'vertical' ? '纵向' : '横向'} · 缝隙${gap}px`;
+  history.push(cv.toDataURL(fmt === 'jpeg' ? 'image/jpeg' : 'image/png', .92));
+  $('#histInfo').textContent = `已生成 ${history.length} 版`;
+  $('#undoBtn').disabled = false;
+  $('#saveBtn').disabled = false;
+  cv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
+$('#undoBtn').onclick = () => {
+  if (!history.length) return;
+  history.pop();
+  const cv = $('#previewCanvas');
+  if (!history.length) { cv.style.display = 'none'; $('#histInfo').textContent = '无历史'; $('#saveBtn').disabled = true; $('#undoBtn').disabled = true; return; }
+  const img = new Image();
+  img.onload = () => { cv.width = img.naturalWidth; cv.height = img.naturalHeight; cv.getContext('2d').drawImage(img, 0, 0); $('#sizeInfo').textContent = `已回退 · 输出 ${cv.width}×${cv.height}px（可改设置重新生成）`; };
+  img.src = history[history.length - 1];
+  $('#histInfo').textContent = `已生成 ${history.length} 版（已撤销1次）`;
+  $('#undoBtn').disabled = history.length === 0;
+};
+$('#saveBtn').onclick = async () => {
+  const cv = $('#previewCanvas');
+  if (!cv.width) return;
+  const mime = fmt === 'jpeg' ? 'image/jpeg' : 'image/png';
+  const q = parseInt($('#quality').value, 10) / 100;
+  const fname = `stitch-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'')}.${fmt === 'jpeg' ? 'jpg' : 'png'}`;
+  cv.toBlob(async blob => {
+    if (!blob) return alert('导出失败，图片太大');
+    // 手机分享优先（可存相册）
+    try {
+      const file = new File([blob], fname, { type: mime });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+    } catch(e) { /* 用户取消则回落下载 */ }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }, mime, q);
+};
+render();
+</script>
+</body>
+</html>

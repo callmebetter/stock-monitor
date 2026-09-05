@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock Monitor · 工具首页</title>
+  <script src="/static/vendor/tailwind.js"></script>
+  <link rel="stylesheet" href="/static/vendor/daisyui.css">
+  <style>
+    html { color-scheme: dark; }
+    body {
+      background:
+        radial-gradient(1200px 400px at 80% -10%, rgba(212, 165, 55, 0.05), transparent 60%),
+        radial-gradient(900px 400px at 0% -10%, rgba(88, 166, 255, 0.04), transparent 60%),
+        #0d1117;
+      color: #e6edf3;
+      font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+    }
+    .entry-card {
+      display: flex; align-items: center; gap: 14px;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 14px;
+      padding: 16px;
+      transition: border-color .15s ease, transform .15s ease, background .15s ease;
+    }
+    .entry-card:hover { border-color: rgba(212, 165, 55, .4); transform: translateY(-2px); background: #1a2029; }
+    .entry-card:active { transform: scale(.99); }
+    .entry-icon {
+      width: 46px; height: 46px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 12px; font-size: 22px;
+      background: rgba(212, 165, 55, .1);
+      border: 1px solid rgba(212, 165, 55, .25);
+    }
+    .entry-arrow { color: #6e7681; transition: color .15s ease, transform .15s ease; }
+    .entry-card:hover .entry-arrow { color: #d4a537; transform: translateX(3px); }
+    .text-gold  { color: #d4a537; }
+    .text-muted { color: #8b949e; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="border-b border-[#21262d]">
+    <div class="mx-auto max-w-2xl px-4 h-16 flex items-center gap-2.5">
+      <svg class="w-6 h-6 text-gold shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 17l6-6 4 4 8-8"></path><path d="M21 7v5h-5"></path>
+      </svg>
+      <h1 class="text-base sm:text-lg font-semibold">Stock Monitor</h1>
+      <span class="badge badge-sm font-normal hidden sm:inline-flex" style="background:rgba(212,165,55,.12);color:#d4a537;border:1px solid rgba(212,165,55,.3)">行情 · 工具</span>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-2xl px-4 py-6">
+    <p class="text-sm text-muted mb-5 px-1">选择要使用的功能：</p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+      <a href="/web/tools/stitch" class="entry-card">
+        <div class="entry-icon">📱</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-[15px]">截图拼接</div>
+          <div class="text-xs text-muted mt-1 leading-relaxed">多张手机截图纵向 / 横向拼成一张长图，支持裁剪</div>
+        </div>
+        <svg class="entry-arrow w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 6l6 6-6 6"></path>
+        </svg>
+      </a>
+
+      <a href="/web/gold" class="entry-card">
+        <div class="entry-icon">🪙</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-[15px]">黄金行情</div>
+          <div class="text-xs text-muted mt-1 leading-relaxed">国内 / 国际金价、场外与黄金 ETF 对比</div>
+        </div>
+        <svg class="entry-arrow w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 6l6 6-6 6"></path>
+        </svg>
+      </a>
+
+      <a href="/web/gold/trend" class="entry-card">
+        <div class="entry-icon">📈</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-[15px]">Au(T+D) 走势</div>
+          <div class="text-xs text-muted mt-1 leading-relaxed">Au(T+D) 日 K 蜡烛图与均线（周 / 月切换）</div>
+        </div>
+        <svg class="entry-arrow w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 6l6 6-6 6"></path>
+        </svg>
+      </a>
+
+      <a href="/docs" class="entry-card">
+        <div class="entry-icon">📚</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-[15px]">API 文档</div>
+          <div class="text-xs text-muted mt-1 leading-relaxed">FastAPI Swagger 接口文档与在线调试</div>
+        </div>
+        <svg class="entry-arrow w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 6l6 6-6 6"></path>
+        </svg>
+      </a>
+
+    </div>
+  </main>
+
+</body>
+</html>

@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from routes.api_routes import router as api_router
 from routes.gold_routes import router as gold_router
 from routes.web_routes import router as web_router
+from routes.page_routes import router as page_router
 
 
 @asynccontextmanager
@@ -49,6 +50,7 @@ app = FastAPI(title="Stock Monitoring API", lifespan=lifespan)
 app.include_router(api_router, prefix="/api")
 app.include_router(gold_router, prefix="/api")
 app.include_router(web_router)
+app.include_router(page_router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":

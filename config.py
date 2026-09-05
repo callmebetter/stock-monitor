@@ -19,7 +19,7 @@ SCHEDULER_CONFIG = {
     'timezone': 'Asia/Shanghai'
 }
 
-# 黄金行情追踪器配置（gold-invest.md）
+# 黄金行情追踪器配置（docs/gold-invest.md）
 GOLD_CONFIG = {
     'timeout': int(os.getenv('GOLD_TIMEOUT', 5)),        # 上游请求超时（秒）
     'cache_ttl': int(os.getenv('GOLD_CACHE_TTL', 30)),   # 内存缓存 TTL（秒）
