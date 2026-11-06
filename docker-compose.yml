@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000" # Map host port 80 to container port 8000
+    volumes:
+      - .:/app # Mounts the project directory for easy development (optional for production)
+    # If your app needs environment variables from a file:
+    # env_file:
+    #   - ./.env
+
+  # Example of adding a database service if your app needs one
+  # database:
+  #   image: "postgres:13-alpine"
+  #   restart: unless-stopped
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data/
+  #   environment:
+  #     - POSTGRES_USER=stockuser
+  #     - POSTGRES_PASSWORD=password
+  #     - POSTGRES_DB=stockdb
+
+volumes:
+  postgres_data:
